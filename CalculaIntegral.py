@@ -37,10 +37,12 @@ class Transformacao(object):
         
 class Transformacoes(object):
     """description of class"""
-    transformacoes = list()
-    transformacoes_realizadas = list()
+
+    def __init__(self):
+        a = 0
 
     def Transforma( self, expressao ):
+        self.transformacoes_realizadas = list()
         for transformacao in self.transformacoes:
             if transformacao.funcao_reconhecimento(expressao):
                 self.transformacoes_realizadas.append(Transformacao_Realizada(transformacao.funcao_transformacao(expressao),transformacao.funcao_consolidadora))
@@ -48,6 +50,11 @@ class Transformacoes(object):
         return self.transformacoes_realizadas
         
 class Transformacoes_Finais(Transformacoes):
+
+    transformacoes = list()
+    transformacoes_realizadas = list()
+
+
     def __init__(self):
 
 
@@ -70,6 +77,11 @@ class Transformacoes_Finais(Transformacoes):
         self.transformacoes.append(Transformacao(reconhece_x_elevado_n, calcula_x_elevado_n,funcao_identidade,"x elevado a constante"))
 
 class Transformacoes_Certeiras(Transformacoes):
+
+    transformacoes = list()
+    transformacoes_realizadas = list()
+
+
     def __init__(self):
 
         """As transformações finais sempre devolvem uma só transformação, que pode trazer n expressões para serem resolvidas. Todas precisam ser resolvidas (AND)"""
@@ -83,7 +95,7 @@ class Transformacoes_Certeiras(Transformacoes):
             return (list(expressao.args))
         
         def soma_parcelas(expressao_base,lista_expressoes_resultado):
-            return(sum(lista_expressoes))
+            return(sum(lista_expressoes_resultado))
 
         self.transformacoes.append(Transformacao(reconhece_soma, separa_parcelas_soma, soma_parcelas, "integral da soma é a soma das integrais"))
 
@@ -101,6 +113,11 @@ class Transformacoes_Certeiras(Transformacoes):
         self.transformacoes.append(Transformacao(reconhece_constante_multiplicando_funcao_com_simbolo, retira_constante_multiplicada, multiplica_constante_de_volta, "integral(cx) = c integral(x)"))
 
 class Transformacoes_Heuristicas(Transformacoes):
+
+    transformacoes = list()
+    transformacoes_realizadas = list()
+
+
     def __init__(self):
         
         """Ainda não tem nada"""
@@ -127,9 +144,8 @@ class No(object):
     filhos = []
     filhos_construidos = False
     funcao_consolidadora_filhos = None
-    tipo_de_ramificacao_filhos = Ramificacao()
+    tipo_de_ramificacao_filhos = Ramificacao.AND
     pai = None
-    expressao_a_solucionar = None
     solucionado = False
     solucao = None
     resultados_filhos = []
@@ -138,24 +154,23 @@ class No(object):
     def __init__(self, expressao, pai):
         self.expressao = expressao
         self.pai = pai
+        self.filhos = []
 
     def constroi_filhos(self):
-        """retirar. Usada para intellisense"""
-        solucoes_finais = [Transformacao_Realizada(None,None)]
-        solucoes_finais = transformacoes_finais.Transforma(expressao_a_solucionar)
+        solucoes_finais = transformacoes_finais.Transforma(self.expressao)
         if len(solucoes_finais) > 0:
-            solucao = solucoes_finais[0].expressoes[0]
-            solucionado = True
+            self.solucao = solucoes_finais[0].expressoes[0]
+            self.solucionado = True
         else:
-            solucoes_finais = transformacoes_certeiras.Transforma(expressao_a_solucionar)
+            solucoes_finais = transformacoes_certeiras.Transforma(self.expressao)
             if len(solucoes_finais) > 0:
                 for expressao in solucoes_finais[0].expressoes:
                     self.filhos.append(No(expressao,self))
-                self.funcao_consolidadora = solucoes_finais[0].funcao_consolidadora
+                self.funcao_consolidadora_filhos = solucoes_finais[0].funcao_consolidadora
                 self.solucionado = False
                 self.tipo_de_ramificacao_filhos = Ramificacao.AND
             else:
-                solucoes_finais = transformacoes_heuristicas.Transforma(expressao_a_solucionar)
+                solucoes_finais = transformacoes_heuristicas.Transforma(self.expressao)
                 for solucao in solucoes_finais:
                     self.filhos.append(No(solucao.expressoes[0],self))
                     self.solucionado = False
@@ -163,42 +178,61 @@ class No(object):
     
     def  __str__(self, nivel = 0):
         """imprime a situação atual da árvore, em nível"""
-        ret = "\t"*nivel+repr(self.value)+"\n"
+        ret = "\t"*nivel+repr(self.expressao)+"\n"
         for filho in self.filhos:
             ret += filho.__str__(nivel + 1)
-            
+        return ret
+      
 
 
-    def resolve(self):
+    def resolve_depth(self):
+
+        lista_filhos = []
+
         if not self.filhos_construidos:
             self.constroi_filhos()
         if self.solucionado:
             return self.solucao
         else:
+            if len(self.filhos) == 0:
+                return none
             if self.tipo_de_ramificacao_filhos == Ramificacao.AND:
                 for filho in self.filhos:
-                    self.resultados_filhos.append(filho.resolve())
+                    expressao = filho.resolve_depth()
+                    if expressao == None:
+                        return None
+                    else:
+                        lista_filhos.append(expressao)
+                return(self.funcao_consolidadora_filhos(self.expressao,lista_filhos))
+            else:
+               if self.tipo_de_ramificacao_filhos == Ramificacao.OR: 
+                   for filho in self.filhos:
+                       expressao = filho.resolve_depth()
+                       if expressao != None:
+                           return (expressao)
+                   return None
 
 
 
-        
+
+           
 
 
-    
-         
 
 
 x = symbols('x')
 
 
 
-expressao = x**2
+expressao = x**2 + x**3
 no = No(expressao, None)
-print(No)
+expressao = no.resolve_depth()
+print("Resultado:")
+print(expressao)
+print("Árvore")
+print(no)
 
-expressao = x**2
-resultado = transformacoes_finais.Transforma(expressao)
-print(resultado)
+
 
 
 
