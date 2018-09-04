@@ -12,8 +12,8 @@ def ifNone(str):
 
 class Ramificacao(Enum):
     AND = 1
-    OR = 2  
-    
+    OR = 2
+
 class Transformacao_Realizada(object):
 
     expressoes = []
@@ -26,7 +26,7 @@ class Transformacao_Realizada(object):
 
 class Transformacao(object):
     """description of class"""
-    
+
     """Retorna verdadeiro se a expressão é do tipo tratado pela transformação """
     funcao_reconhecimento = None
     """Devolve a lista de expressões nas quais a expressão é transformada. Cada expressão deve ser passar pela integração (se não for o resultado final)"""
@@ -41,7 +41,7 @@ class Transformacao(object):
         self.funcao_transformacao = funcao_transformacao
         self.funcao_consolidadora = funcao_consolidadora
         self.nome = nome
-        
+
 class Transformacoes(object):
     """description of class"""
 
@@ -55,7 +55,7 @@ class Transformacoes(object):
                 self.transformacoes_realizadas.append(Transformacao_Realizada(transformacao.funcao_transformacao(expressao),transformacao.funcao_consolidadora))
 
         return self.transformacoes_realizadas
-        
+
 class Transformacoes_Finais(Transformacoes):
 
     transformacoes = list()
@@ -67,7 +67,7 @@ class Transformacoes_Finais(Transformacoes):
 
         """As transformações finais sempre devolvem uma só transformação com uma só expressão de resultado"""
 
-        
+
         def reconhece_x_elevado_n(expressao):
             try:
                 expressao_eh_potencia = isinstance(expressao,sympy.Pow)
@@ -76,10 +76,10 @@ class Transformacoes_Finais(Transformacoes):
             except:
                 return False
             return expressao_eh_potencia and base_eh_x and expoente_eh_real
-                
+
         def calcula_x_elevado_n(expressao):
             expoente = expressao.args[1]
-            return [(x**(expoente + 1)) / (expoente + 1)] 
+            return [(x**(expoente + 1)) / (expoente + 1)]
 
         def funcao_identidade(expressao_base,lista_expressoes_resultado):
             return lista_expressoes_resultado[0]
@@ -122,14 +122,14 @@ class Transformacoes_Certeiras(Transformacoes):
 
         """As transformações finais sempre devolvem uma só transformação, que pode trazer n expressões para serem resolvidas. Todas precisam ser resolvidas (AND)"""
 
-        
+
         def reconhece_soma(expressao):
             expressao_eh_soma = isinstance(expressao,sympy.Add)
             return expressao_eh_soma
-                
+
         def separa_parcelas_soma(expressao):
             return (list(expressao.args))
-        
+
         def soma_parcelas(expressao_base,lista_expressoes_resultado):
             return(sum(lista_expressoes_resultado))
 
@@ -142,10 +142,10 @@ class Transformacoes_Certeiras(Transformacoes):
                 return (expressao_eh_produto and primeiro_fator_eh_numero)
             except:
                 return False
-                
+
         def retira_constante_multiplicada(expressao):
             return [(expressao/expressao.args[0])]
-        
+
         def multiplica_constante_de_volta(expressao_base,lista_expressoes_resultado):
             return (expressao_base.args[0] * lista_expressoes_resultado[0] )
 
@@ -153,7 +153,7 @@ class Transformacoes_Certeiras(Transformacoes):
 
 
         def reconhece_divisao_polinomios(expressao):
-            try: 
+            try:
                 eh_mult = expressao.func == sympy.Mul
                 op1_eh_polinomio = expressao.args[0].is_polynomial()
                 op2_eh_potencia = expressao.args[1].func == sympy.Pow
@@ -186,7 +186,7 @@ class Transformacoes_Heuristicas(Transformacoes):
 
 
     def __init__(self):
-        
+
 
         def operador_eh_sen_expoente_positivo_ou_cos_expoente_negativo(operador):
             expressao_eh_potenciacao = isinstance(operador,sympy.Pow)
@@ -206,17 +206,17 @@ class Transformacoes_Heuristicas(Transformacoes):
                 expressao_eh_multiplicacao = isinstance(expressao,sympy.Mul)
                 operador1_eh_ok = operador_eh_sen_expoente_positivo_ou_cos_expoente_negativo(expressao.args[0])
                 operador2_eh_ok = operador_eh_sen_expoente_positivo_ou_cos_expoente_negativo(expressao.args[1])
-                n_operadores_eh_2 = len(expressao.args) == 2            
+                n_operadores_eh_2 = len(expressao.args) == 2
                 expoentes_iguais = abs(expressao.args[0].args[1]) == abs(expressao.args[1].args[1])
-                return expressao_eh_multiplicacao and operador1_eh_ok and operador2_eh_ok and n_operadores_eh_2 and expoentes_iguais 
+                return expressao_eh_multiplicacao and operador1_eh_ok and operador2_eh_ok and n_operadores_eh_2 and expoentes_iguais
             except:
                 return false
-                
+
         def transforma_em_tangente(expressao):
             expoente = abs(expressao.args[0].args[1])
             simbolo = expressao.args[0].args[0].args[0]
             return [(tan(simbolo)**expoente)]
-        
+
         def funcao_identidade(expressao_base,lista_expressoes_resultado):
             return lista_expressoes_resultado[0]
 
@@ -236,7 +236,7 @@ class Transformacoes_Heuristicas(Transformacoes):
 
             except:
                 return false
-        
+
         def reconhece_algum_um_menos_x_ao_quadrado(expressao):
             achou = False
             for subexp in preorder_traversal(expressao):
@@ -256,9 +256,9 @@ class Transformacoes_Heuristicas(Transformacoes):
             return lista_expressoes_resultado[0].subs(x,asin(x))
 
         self.transformacoes.append(Transformacao(reconhece_algum_um_menos_x_ao_quadrado, substitui_x_senx, volta_subs_x_senx, "em (1-x**2) x vira sin(x)"))
-        
+
         def reconhece_tg_4(expressao):
-            try: 
+            try:
                 eh_potencia = expressao.func == sympy.Pow
                 op1_eh_tan = expressao.args[0].func == tan
                 op1_de_op1_eh_simbolo = isinstance(expressao.args[0].args[0] , sympy.Symbol)
@@ -276,7 +276,7 @@ class Transformacoes_Heuristicas(Transformacoes):
         self.transformacoes.append(Transformacao(reconhece_tg_4, substitui_tg4, volta_subs_tan_4, "substitui tan**4"))
 
         def reconhece_1_sobre_1_mais_x_quadrado(expressao):
-            return expressao == 1/(1+x**2) 
+            return expressao == 1/(1+x**2)
 
         def calcula_1_sobre_1_mais_x_quadrado(expressao):
             return [1]
@@ -285,9 +285,9 @@ class Transformacoes_Heuristicas(Transformacoes):
             return lista_expressoes_resultado[0].subs(x,tan(x))
 
         self.transformacoes.append(Transformacao(reconhece_1_sobre_1_mais_x_quadrado, calcula_1_sobre_1_mais_x_quadrado, volta_substitui_atan, "substitui arctan"))
-            
 
-    
+
+
 transformacoes_finais = Transformacoes_Finais()
 transformacoes_certeiras = Transformacoes_Certeiras()
 transformacoes_heuristicas = Transformacoes_Heuristicas()
@@ -332,17 +332,27 @@ class No(object):
                     self.funcoes_filhos_or.append(solucao.funcao_consolidadora)
                     self.solucionado = False
                     self.tipo_de_ramificacao_filhos = Ramificacao.OR
-    
 
 
+    def to_dot(self, nivel = 0):
+        """retorna a situação atual da árvore, em nível"""
+        n = nivel
+        if self.solucao:
+            ret = ['\tn%s [ label = "%s -> %s" ];' % (nivel, self.expressao, self.solucao)]
+        else:
+            ret = ['\tn%s [ label = "%s" ];' % (nivel, self.expressao)]
 
-    def  __str__(self, nivel = 0):
-        """imprime a situação atual da árvore, em nível"""
-        ret = "\t"*nivel+repr(self.expressao)+"->"+  str(self.solucao)  +" \n"
-        for filho in self.filhos:
-            ret += filho.__str__(nivel + 1)
-        return ret
-      
+        # ret = "\t"*nivel+repr(self.expressao)+"->"+  str(self.solucao)  +" \n"
+        for i, filho in enumerate(self.filhos):
+            nivel += 1
+            ret.append(filho.to_dot(nivel))
+            ret.append('\tn%s -> n%s' % (n, nivel))
+
+        return "\n".join(ret)
+
+
+    def  __str__(self):
+        return self.to_dot(0)
 
 
     def resolve_depth(self):
@@ -351,11 +361,13 @@ class No(object):
 
         if not self.filhos_construidos:
             self.constroi_filhos()
+
         if self.solucionado:
             return self.solucao
         else:
             if len(self.filhos) == 0:
                 return None
+
             if self.tipo_de_ramificacao_filhos == Ramificacao.AND:
                 for filho in self.filhos:
                     expressao = filho.resolve_depth()
@@ -365,7 +377,7 @@ class No(object):
                         lista_filhos.append(expressao)
                 return(self.funcao_consolidadora_filhos(self.expressao,lista_filhos))
             else:
-               if self.tipo_de_ramificacao_filhos == Ramificacao.OR: 
+               if self.tipo_de_ramificacao_filhos == Ramificacao.OR:
                    i = 0
                    for filho in self.filhos:
                        expressao = filho.resolve_depth()
@@ -377,37 +389,39 @@ class No(object):
 
 
 
-           
+def pede_expressao_pro_usuario():
+    global x, y, z, expressao
+
+    x, y, z = sympy.symbols('x y z')
+    entrada = input("Informe a expressão [ex: x**4 / ((1-x**2)**(5/2))]: ")
+
+    try:
+        print("sympy.srepr(%s)" % entrada)
+        expressao = eval("%s" % entrada)
+        return expressao
+    except Exception as e:
+        print("Expressão inválida. " +  e)
+        exit()
 
 
+def main():
+    global x, y, z, expressao
+
+    # expressao = x**4 / ((1-x**2)**(5/2))
+    expressao = pede_expressao_pro_usuario()
+
+    no = No(expressao, None)
+    expressao = no.resolve_depth()
+
+    print("")
+    print("Resultado: %s" % expressao)
+    print("")
+    print("Árvore: ")
+    print("")
+    print("digraph G {")
+    print(no)
+    print("}")
 
 
-x = symbols('x')
-
-
-
-expressao = x**4 / ((1-x**2)**(5/2))
-
-#expressao = 7*x**2 + 8*x**4
-
-no = No(expressao, None)
-expressao = no.resolve_depth()
-print("Resultado:")
-print(expressao)
-print("Árvore")
-print(no)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+if __name__ == '__main__':
+    main()
