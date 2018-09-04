@@ -334,15 +334,25 @@ class No(object):
                     self.tipo_de_ramificacao_filhos = Ramificacao.OR
 
 
+    def to_dot(self, nivel = 0):
+        """retorna a situação atual da árvore, em nível"""
+        n = nivel
+        if self.solucao:
+            ret = ['\tn%s [ label = "%s -> %s" ];' % (nivel, self.expressao, self.solucao)]
+        else:
+            ret = ['\tn%s [ label = "%s" ];' % (nivel, self.expressao)]
+
+        # ret = "\t"*nivel+repr(self.expressao)+"->"+  str(self.solucao)  +" \n"
+        for i, filho in enumerate(self.filhos):
+            nivel += 1
+            ret.append(filho.to_dot(nivel))
+            ret.append('\tn%s -> n%s' % (n, nivel))
+
+        return "\n".join(ret)
 
 
-    def  __str__(self, nivel = 0):
-        """imprime a situação atual da árvore, em nível"""
-        ret = "\t"*nivel+repr(self.expressao)+"->"+  str(self.solucao)  +" \n"
-        for filho in self.filhos:
-            ret += filho.__str__(nivel + 1)
-        return ret
-
+    def  __str__(self):
+        return self.to_dot(0)
 
 
     def resolve_depth(self):
@@ -402,10 +412,15 @@ def main():
 
     no = No(expressao, None)
     expressao = no.resolve_depth()
-    print("Resultado:")
-    print(expressao)
-    print("Árvore")
+
+    print("")
+    print("Resultado: %s" % expressao)
+    print("")
+    print("Árvore: ")
+    print("")
+    print("digraph G {")
     print(no)
+    print("}")
 
 
 if __name__ == '__main__':
