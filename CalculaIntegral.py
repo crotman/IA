@@ -380,14 +380,14 @@ class No(object):
 
 
 def pede_expressao_pro_usuario():
-    global x, y, z
+    global x, y, z, expressao
 
     x, y, z = sympy.symbols('x y z')
     entrada = input("Informe a expressão [ex: x**4 / ((1-x**2)**(5/2))]: ")
 
     try:
         print("sympy.srepr(%s)" % entrada)
-        expressao = eval("sympy.srepr(%s)" % entrada)
+        expressao = eval("%s" % entrada)
         return expressao
     except Exception as e:
         print("Expressão inválida. " +  e)
@@ -395,6 +395,8 @@ def pede_expressao_pro_usuario():
 
 
 def main():
+    global x, y, z, expressao
+
     # expressao = x**4 / ((1-x**2)**(5/2))
     expressao = pede_expressao_pro_usuario()
 
