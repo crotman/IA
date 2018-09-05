@@ -10,18 +10,21 @@ def ifNone(str):
         return str
 
 
+
 class Ramificacao(Enum):
-    AND = 1
-    OR = 2
+    AND = "AND"
+    OR = "OR"
 
 class Transformacao_Realizada(object):
 
     expressoes = []
     funcao_consolidadora = None
+    nome = ""
 
-    def __init__(self, expressoes, funcao_consolidadora):
+    def __init__(self, expressoes, funcao_consolidadora, nome):
         self.expressoes = expressoes
         self.funcao_consolidadora = funcao_consolidadora
+        self.nome = nome
         i = 0
 
 class Transformacao(object):
@@ -52,7 +55,7 @@ class Transformacoes(object):
         self.transformacoes_realizadas = list()
         for transformacao in self.transformacoes:
             if transformacao.funcao_reconhecimento(expressao):
-                self.transformacoes_realizadas.append(Transformacao_Realizada(transformacao.funcao_transformacao(expressao),transformacao.funcao_consolidadora))
+                self.transformacoes_realizadas.append(Transformacao_Realizada(transformacao.funcao_transformacao(expressao),transformacao.funcao_consolidadora, transformacao.nome))
 
         return self.transformacoes_realizadas
 
@@ -91,7 +94,7 @@ class Transformacoes_Finais(Transformacoes):
             return expressao_eh_constante
 
         def calcula_constante(expressao):
-            return [x]
+            return [expressao*x]
 
         self.transformacoes.append(Transformacao(reconhece_constante, calcula_constante, funcao_identidade, "constante"))
 
@@ -108,6 +111,13 @@ class Transformacoes_Finais(Transformacoes):
 
         self.transformacoes.append(Transformacao(reconhece_exponencial, calcula_exponencial, funcao_identidade,"exponencial"))
 
+        def reconhece_x(expressao):
+            return isinstance(expressao,sympy.Symbol)
+
+        def calcula_x(expressao):
+            return [x**2/2]
+
+        self.transformacoes.append(Transformacao(reconhece_x, calcula_x, funcao_identidade, "x"))
 
 
 
@@ -133,7 +143,7 @@ class Transformacoes_Certeiras(Transformacoes):
         def soma_parcelas(expressao_base,lista_expressoes_resultado):
             return(sum(lista_expressoes_resultado))
 
-        self.transformacoes.append(Transformacao(reconhece_soma, separa_parcelas_soma, soma_parcelas, "integral da soma é a soma das integrais"))
+        self.transformacoes.append(Transformacao(reconhece_soma, separa_parcelas_soma, soma_parcelas, "integral da soma"))
 
         def reconhece_constante_multiplicando_funcao_com_simbolo(expressao):
             try:
@@ -222,6 +232,14 @@ class Transformacoes_Heuristicas(Transformacoes):
 
         self.transformacoes.append(Transformacao(reconhece_sin_sobre_cos, transforma_em_tangente, funcao_identidade, "sen/cos vira tan"))
 
+        def transforma_em_cotangente(expressao):
+            expoente = abs(expressao.args[0].args[1])
+            simbolo = expressao.args[0].args[0].args[0]
+            return [(cot(simbolo)**-expoente)]
+
+        self.transformacoes.append(Transformacao(reconhece_sin_sobre_cos, transforma_em_cotangente, funcao_identidade, "sen/cos vira cot"))
+
+
         def reconhece_um_menos_x_quadrado(expressao):
             try:
                 eh_soma = expressao.func == sympy.Add
@@ -275,6 +293,7 @@ class Transformacoes_Heuristicas(Transformacoes):
 
         self.transformacoes.append(Transformacao(reconhece_tg_4, substitui_tg4, volta_subs_tan_4, "substitui tan**4"))
 
+        
         def reconhece_1_sobre_1_mais_x_quadrado(expressao):
             return expressao == 1/(1+x**2)
 
@@ -304,13 +323,19 @@ class No(object):
     solucionado = False
     solucao = None
     resultados_filhos = []
+    transformacao = ""
+    ultimo_no = 0
+    id
 
 
-    def __init__(self, expressao, pai):
+    def __init__(self, expressao, pai, transformacao):
         self.expressao = expressao
         self.pai = pai
         self.filhos = []
         self.funcoes_filhos_or = []
+        self.transformacao = transformacao
+        No.ultimo_no = No.ultimo_no + 1
+        self.id = No.ultimo_no
 
     def constroi_filhos(self):
         solucoes_finais = transformacoes_finais.Transforma(self.expressao)
@@ -321,14 +346,14 @@ class No(object):
             solucoes_finais = transformacoes_certeiras.Transforma(self.expressao)
             if len(solucoes_finais) > 0:
                 for expressao in solucoes_finais[0].expressoes:
-                    self.filhos.append(No(expressao,self))
+                    self.filhos.append(No(expressao,self, solucoes_finais[0].nome))
                 self.funcao_consolidadora_filhos = solucoes_finais[0].funcao_consolidadora
                 self.solucionado = False
                 self.tipo_de_ramificacao_filhos = Ramificacao.AND
             else:
                 solucoes_finais = transformacoes_heuristicas.Transforma(self.expressao)
                 for solucao in solucoes_finais:
-                    self.filhos.append(No(solucao.expressoes[0],self))
+                    self.filhos.append(No(solucao.expressoes[0],self,solucao.nome))
                     self.funcoes_filhos_or.append(solucao.funcao_consolidadora)
                     self.solucionado = False
                     self.tipo_de_ramificacao_filhos = Ramificacao.OR
@@ -337,16 +362,20 @@ class No(object):
     def to_dot(self, nivel = 0):
         """retorna a situação atual da árvore, em nível"""
         n = nivel
-        if self.solucao:
-            ret = ['\tn%s [ label = "%s -> %s" ];' % (nivel, self.expressao, self.solucao)]
+        if self.tipo_de_ramificacao_filhos == Ramificacao.AND :
+            ramificacao = "AND"
         else:
-            ret = ['\tn%s [ label = "%s" ];' % (nivel, self.expressao)]
+            ramificacao = "OR"
+        if self.solucao:
+            ret = ['\tn%s [ label = "%s: %s -> %s. Filhos: %s" ];' % (self.id, self.transformacao, self.expressao, self.solucao, ramificacao)]
+        else:
+            ret = ['\tn%s [ label = "%s: %s -> NADA. Filhos: %s" ];' % (self.id, self.transformacao, self.expressao, ramificacao)]
 
         # ret = "\t"*nivel+repr(self.expressao)+"->"+  str(self.solucao)  +" \n"
         for i, filho in enumerate(self.filhos):
             nivel += 1
             ret.append(filho.to_dot(nivel))
-            ret.append('\tn%s -> n%s' % (n, nivel))
+            ret.append('\tn%s -> n%s' % (self.id, filho.id))
 
         return "\n".join(ret)
 
@@ -375,14 +404,18 @@ class No(object):
                         return None
                     else:
                         lista_filhos.append(expressao)
-                return(self.funcao_consolidadora_filhos(self.expressao,lista_filhos))
+                self.solucao = self.funcao_consolidadora_filhos(self.expressao,lista_filhos)
+                self.solucionado = True
+                return(self.solucao)
             else:
                if self.tipo_de_ramificacao_filhos == Ramificacao.OR:
                    i = 0
                    for filho in self.filhos:
                        expressao = filho.resolve_depth()
                        if expressao != None:
-                           return (self.funcoes_filhos_or[i](self.expressao,[expressao]))
+                           self.solucao = self.funcoes_filhos_or[i](self.expressao,[expressao])
+                           self.solucionado = True
+                           return (self.solucao)
                        i = i+1
                    return None
 
@@ -410,7 +443,7 @@ def main():
     # expressao = x**4 / ((1-x**2)**(5/2))
     expressao = pede_expressao_pro_usuario()
 
-    no = No(expressao, None)
+    no = No(expressao, None, "Raiz")
     expressao = no.resolve_depth()
 
     print("")
