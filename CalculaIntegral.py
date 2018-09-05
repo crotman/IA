@@ -116,10 +116,23 @@ class Transformacoes_Finais(Transformacoes):
 
         def calcula_x(expressao):
             return [x**2/2]
+        
 
         self.transformacoes.append(Transformacao(reconhece_x, calcula_x, funcao_identidade, "x"))
 
+        def reconhece_constante_elevada_x(expressao):
+            try:
+                expressao_eh_potencia = isinstance(expressao,sympy.Pow)
+                base_eh_numero = isinstance(expressao.args[0], sympy.numbers.Number) 
+                expoente_eh_simbolo = isinstance(expressao.args[1],sympy.Symbol)
+                return expressao_eh_potencia and base_eh_numero and expoente_eh_simbolo
+            except:
+                return False
 
+        def calcula_constante_elevada_x(expressao):
+            return [expressao/log(expressao.args[0])]
+
+        self.transformacoes.append(Transformacao(reconhece_constante_elevada_x, calcula_constante_elevada_x, funcao_identidade, "c**x"))
 
 
 class Transformacoes_Certeiras(Transformacoes):
@@ -384,6 +397,12 @@ class No(object):
         return self.to_dot(0)
 
 
+    def bonito(self, level=0):
+        ret = "\t"*level + pretty(self.expressao) + "\n\n"
+        for filho in self.filhos:
+            filho.bonito(level+1)
+        return ret
+
     def resolve_depth(self):
 
         lista_filhos = []
@@ -444,12 +463,20 @@ def main():
     expressao = pede_expressao_pro_usuario()
 
     no = No(expressao, None, "Raiz")
-    expressao = no.resolve_depth()
+    resultado = no.resolve_depth()
 
     print("")
-    print("Resultado: %s" % expressao)
+    print("")
+    print("Resultado:")
+    print(resultado)
+    print("Ou, formatado:")
+    pprint(resultado)
     print("")
     print("Árvore: ")
+    #print("")
+    #print(no.bonito())
+    #rint("")
+    #print("Árvore dot: ")
     print("")
     print("digraph G {")
     print(no)
@@ -458,3 +485,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
